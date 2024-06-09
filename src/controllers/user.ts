@@ -58,3 +58,23 @@ export const getUser = (req: Request, res: Response) => {
 
   return res.status(200).json(rest.success(user))
 }
+
+export const deleteUserById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id)
+  if (Number.isNaN(id)) {
+    return res.status(400).json(rest.error('Invalid user ID'))
+  }
+
+    const user = DEMO_USERS.find(u => u.id === id)
+  if (user === undefined) {
+    return res.status(404).json(rest.error('User not found'))
+  }
+    const demoLength = DEMO_USERS.length
+  for (let i = 0; i < demoLength; i++ )
+    return res.status(200).json(rest.success(DEMO_USERS[i]))
+  }
+
+export const updateUser =  (req: Request, res: Response) => {
+
+
+}
