@@ -69,12 +69,43 @@ export const deleteUserById = (req: Request, res: Response) => {
   if (user === undefined) {
     return res.status(404).json(rest.error('User not found'))
   }
+    
     const demoLength = DEMO_USERS.length
+    const newArray =[]
   for (let i = 0; i < demoLength; i++ )
-    return res.status(200).json(rest.success(DEMO_USERS[i]))
+    if(DEMO_USERS[i].id !== id ){
+      newArray.push(DEMO_USERS[i])
+    }
+  
+    DEMO_USERS.splice(0,demoLength,...newArray)
+
+    return res.status(200).json(rest.success(DEMO_USERS))
+
   }
 
+
 export const updateUser =  (req: Request, res: Response) => {
+  
+    const id = parseInt(req.params.id)
+    const name = req.params.name
+    const email = req.params.email
 
+  if (Number.isNaN(id)) {
+    return res.status(400).json(rest.error('Invalid user ID'))
+  }
 
+    const user = DEMO_USERS.find(u => u.id === id)
+  if (user === undefined) {
+    return res.status(404).json(rest.error('User not found'))
+  }
+
+    const demoLength = DEMO_USERS.length
+  for (let i = 0; i < demoLength; i++ ){
+    if(DEMO_USERS[i].id === id ){
+      DEMO_USERS[i].name = name
+      DEMO_USERS[i].email = email
+      return res.status(200).json(rest.success(DEMO_USERS[i]))
+    }
+  }
+    
 }
