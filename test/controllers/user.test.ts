@@ -64,11 +64,7 @@ describe('updateUser', () => {
         let req = mockRequest({name: 'Bob', email: 'bob@bob.com' });
         let res = mockResponse();
 
-        jest.spyOn(UserController,'getUser').mockReturnValueOnce({
-            id: 12345,
-            name:'John Doe',
-            email: 'john@doe.ca'
-        })
+        //jest.spyOn()
         
 
         UserController.updateUser(req, res);
