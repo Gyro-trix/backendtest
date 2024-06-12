@@ -63,8 +63,7 @@ describe('updateUser', () => {
     it('should update user with given id and return 200', () => {
         let req = mockRequest({name: 'Bob', email: 'bob@bob.com' });
         let res = mockResponse();
-
-        //jest.spyOn()
+        
         
 
         UserController.updateUser(req, res);

@@ -83,10 +83,10 @@ export const deleteUserById = (req: Request, res: Response) => {
 
   }
 
-
 export const updateUser =  (req: Request, res: Response) => {
   
     const id = Math.floor(parseInt(req.params.id))
+    
     const name = req.body.name
     const email = req.body.email
 
