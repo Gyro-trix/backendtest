@@ -12,7 +12,8 @@
     "win-clean": "powershell Remove-Item 'dist' -Recurse -ErrorAction SilentlyContinue",
     "lint": "eslint . --ext .ts,.tsx",
     "lint-fix": "eslint . --fix --ext .ts,.tsx",
-    "test": "jest"
+    "test": "jest",
+    "int-test": "powershell -executionpolicy bypass -File .\\integration-test.ps1"
   },
   "jest": {
     "preset": "ts-jest",

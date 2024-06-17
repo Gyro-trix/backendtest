@@ -8,6 +8,13 @@ const mockRequest = (body: any) => {
     } as unknown as Request;
 };
 
+const mockRequestParam = (params: any) => {
+    return {
+        params: params,
+    } as unknown as Request;
+};
+
+
 const mockResponse = () => {
     let res = {
         status: jest.fn(),
@@ -61,19 +68,21 @@ describe('updateUser', () => {
     })
 
     it('should update user with given id and return 200', () => {
-        let req = mockRequest({name: 'Bob', email: 'bob@bob.com' });
+        let req = mockRequestParam({id:12345, name: 'Bob', email: 'bob@bob.com' });
         let res = mockResponse();
         
-        
+        const id = parseInt(req.params.id)
+        const name = req.params.name
+        const email = req.params.email
 
         UserController.updateUser(req, res);
         expect(res.status).toHaveBeenCalledWith(200)
         expect(res.json).toHaveBeenCalledWith({
             status: "success",
             data: {
-                email: 'bob@bob.com',
-                id: 12345,
-                name: 'Bob'
+                email: email,
+                id: id,
+                name: name
             }
         })
     })
