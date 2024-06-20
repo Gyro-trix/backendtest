@@ -2,6 +2,25 @@ import { type Request, type Response } from 'express'
 import * as rest from '../utils/rest'
 import Joi from 'joi'
 
+import mysql from 'mysql2'
+import dotenv from 'dotenv'
+dotenv.config
+
+const pool = mysql.createPool({
+  host: 'localhost',
+  user:'Matthew',
+  password:'12341234',
+  database: 'testing'
+}).promise()
+
+/*
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE
+}).promise()
+*/
 const DEMO_USERS: User[] = []
 DEMO_USERS.push({
   id: 12345,
@@ -45,10 +64,20 @@ export const createUser = (req: Request, res: Response) => {
     return res.status(200).json(rest.success(createdUser))
 }
 
+export async function getStuff(req:Request, res:Response){
+
+  console.log(req)
+  const [rows] = await pool.query("SELECT * FROM users")
+
+  return res.status(200).json(rest.success(rows))
+
+}
+
 export const getUser = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id)
+  const id = parseInt(req.params.id)
+  
   if (Number.isNaN(id)) {
-    return res.status(400).json(rest.error('Invalid user ID'))
+    
   }
 
   const user = DEMO_USERS.find(u => u.id === id)
@@ -57,6 +86,7 @@ export const getUser = (req: Request, res: Response) => {
   }
 
   return res.status(200).json(rest.success(user))
+  
 }
 
 export const deleteUserById = (req: Request, res: Response) => {
