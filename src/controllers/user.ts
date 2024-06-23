@@ -5,22 +5,22 @@ import Joi from 'joi'
 import mysql from 'mysql2'
 import dotenv from 'dotenv'
 dotenv.config
-
+/*
 const pool = mysql.createPool({
   host: 'localhost',
   user:'Matthew',
   password:'12341234',
   database: 'testing'
 }).promise()
+*/
 
-/*
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST,
   user: process.env.MYSQL_USER,
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_DATABASE
 }).promise()
-*/
+
 const DEMO_USERS: User[] = []
 DEMO_USERS.push({
   id: 12345,
