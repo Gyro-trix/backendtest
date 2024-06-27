@@ -3,13 +3,11 @@ import * as UserController from '../controllers/user'
 
 const router = Router()
 
-router.get('/:id', UserController.getStuff)
-/*
 router.post('/', UserController.createUser)
 router.get('/:id', UserController.getUser)
-router.put('/:id/:name/:email', UserController.updateUser)
-router.delete('/:id', UserController.deleteUserById)
-*/
+router.put('/:id', UserController.updateUser)
+router.delete('/:id', UserController.deleteUser)
+
 /**
  * Exercise:
  * 1. Implement PUT /api/user/:id

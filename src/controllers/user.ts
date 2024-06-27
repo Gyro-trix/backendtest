@@ -2,139 +2,162 @@ import { type Request, type Response } from 'express'
 import * as rest from '../utils/rest'
 import Joi from 'joi'
 
-import mysql from 'mysql2'
-import dotenv from 'dotenv'
-dotenv.config
-/*
-const pool = mysql.createPool({
-  host: 'localhost',
-  user:'Matthew',
-  password:'12341234',
-  database: 'testing'
-}).promise()
-*/
+import mysql, { RowDataPacket } from 'mysql2'
+import * as dotenv from 'dotenv'
+dotenv.config()
 
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST,
   user: process.env.MYSQL_USER,
   password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE
+  database: process.env.MYSQL_DATABASE,
 }).promise()
-
-const DEMO_USERS: User[] = []
-DEMO_USERS.push({
-  id: 12345,
-  name: 'John Doe',
-  email: 'john@doe.com'
-})
 
 type email = string
 
-export interface User {
+export interface User extends RowDataPacket{
   id?: number
   name: string
   email: email
+  place: string
+  bio: string
 }
+/*
+export interface Database{
+  create()
+  get(id: number): Promise<T>
+}
+*/
 
 const UserSchema = Joi.object<User>({
   id: Joi.number().optional(),
   name: Joi.string().required(),
-  email: Joi.string().email().required()
+  email: Joi.string().email().required(),
+  place: Joi.string().required(),
+  bio: Joi.string()
 })
 
-export const createUser = (req: Request, res: Response) => {
-    const {error, value} = UserSchema.validate(req.body)
-    if (error !== undefined) {
-      return res.status(400).json(rest.error('User data is not formatted correctly'))
-    }
-  
-    const user = value;
-    if ('id' in user) {
-      return res.status(400).json(rest.error('User ID will be generated automatically'))
-    }
-  
-    const id = Math.floor(Math.random() * 1000000)
-  
-    const createdUser = {
-      ...user,
-      id
-    }
-    DEMO_USERS.push(createdUser)
-  
-    return res.status(200).json(rest.success(createdUser))
+//Create, Read, Update, Delete
+
+export async function createUser(req:Request, res:Response){
+
+  //Insure request body is formatted correctly
+  const {error, value} = UserSchema.validate(req.body)
+  if (error !== undefined) {
+    return res.status(400).json(rest.error('User data is not formatted correctly'))
+  }
+  //There should be no ID in the request body as database creats it
+  const user = value
+  console.log(value)
+  if ('id' in user) {
+    return res.status(400).json(rest.error('User ID will be generated automatically'))
+  }
+
+  const email = user.email
+  const name = user.name
+  const place = user.place
+  //Check if email exists in database
+  const[exists] = await pool.query(`
+    SELECT * FROM users
+    WHERE email = ?
+    `,[email])
+
+  const values = Object.values(exists)
+  if (values.length === 1){
+    return res.status(400).json(rest.error('Email already in use'))
+  } 
+
+  const [row] = await pool.query(`
+    INSERT INTO users(email,name,place)
+    VALUES(?,?,?)
+    `, [email,name,place])
+
+  return res.status(200).json(rest.success("User "+name+" created"))
+
 }
 
-export async function getStuff(req:Request, res:Response){
-
-  console.log(req)
-  const [rows] = await pool.query("SELECT * FROM users")
-
-  return res.status(200).json(rest.success(rows))
-
-}
-
-export const getUser = (req: Request, res: Response) => {
+export async function getUser(req:Request, res:Response){
+  
   const id = parseInt(req.params.id)
-  
+
+  //Make sure id given is a number
   if (Number.isNaN(id)) {
+    return res.status(400).json(rest.error('ID is not a number'))
+  }
+
+  const [row] = await pool.query(`
+    SELECT * FROM users
+    WHERE id = ?
+    `, [id])
     
+  //If there are empty results, the ID is not in the table
+  const values = Object.values(row)
+  if (values.length === 0){
+    return res.status(400).json(rest.error('No Entry for given ID'))
   }
+ 
+ 
+  return res.status(200).json(rest.success(row))
 
-  const user = DEMO_USERS.find(u => u.id === id)
-  if (user === undefined) {
-    return res.status(404).json(rest.error('User not found'))
-  }
-
-  return res.status(200).json(rest.success(user))
-  
 }
 
-export const deleteUserById = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id)
-  if (Number.isNaN(id)) {
-    return res.status(400).json(rest.error('Invalid user ID'))
-  }
-
-    const user = DEMO_USERS.find(u => u.id === id)
-  if (user === undefined) {
-    return res.status(404).json(rest.error('User not found'))
-  }
-    
-    const demoLength = DEMO_USERS.length
-    const newArray =[]
-  for (let i = 0; i < demoLength; i++ )
-    if(DEMO_USERS[i].id !== id ){
-      newArray.push(DEMO_USERS[i])
-    }
+export async function updateUser(req:Request, res:Response){
   
-    DEMO_USERS.splice(0,demoLength,...newArray)
-
-    return res.status(200).json(rest.success(DEMO_USERS))
-
+  const {error, value} = UserSchema.validate(req.body)
+  if (error !== undefined) {
+    return res.status(400).json(rest.error('User data is not formatted correctly'))
   }
 
-export const updateUser =  (req: Request, res: Response) => {
-  
-    const id = parseInt(req.params.id)
-    const name = req.params.name
-    const email = req.params.email
-
+  const id = parseInt(req.params.id)
   if (Number.isNaN(id)) {
-    return res.status(400).json(rest.error('Invalid user ID'))
+    return res.status(400).json(rest.error('ID is not a number'))
   }
 
-    const user = DEMO_USERS.find(u => u.id === id)
-  if (user === undefined) {
-    return res.status(404).json(rest.error('User not found'))
+  const user = value
+  const email = user.email
+  const name = user.name
+  const place = user.place
+  const bio = user.bio
+
+  const [row] = await pool.query(`
+    UPDATE users
+    SET email = ?, name = ?, place = ?, bio = ?
+    WHERE id = ?
+    `, [email,name,place,bio,id])
+
+  //If there are empty results, the ID is not in the table
+  const values = Object.values(row)
+  if (values.length === 0){
+    return res.status(400).json(rest.error('No Entry for given ID'))
   }
 
-    const demoLength = DEMO_USERS.length
-  for (let i = 0; i < demoLength; i++ ){
-    if(DEMO_USERS[i].id === id ){
-      DEMO_USERS[i].name = name
-      DEMO_USERS[i].email = email
-      return res.status(200).json(rest.success(DEMO_USERS[i]))
-    }
+  const [result] = await pool.query(`
+    SELECT * FROM users
+    WHERE id = ?
+    `, [id])
+
+  return res.status(200).json(rest.success(result))
+
+}
+
+export async function deleteUser(req:Request, res:Response){
+  
+  const id = parseInt(req.params.id)
+  if (Number.isNaN(id)) {
+    return res.status(400).json(rest.error('ID is not a number'))
   }
-    
+
+  const [row] = await pool.query(`
+    DELETE FROM users
+    WHERE id = ?
+    `, [id])
+
+  //If there are empty results, the ID is not in the table
+  const values = Object.values(row)
+  if (values.length === 0){
+    return res.status(400).json(rest.error('No Entry for given ID'))
+  }  
+
+  return res.status(200).json(rest.success(row))
+
 }

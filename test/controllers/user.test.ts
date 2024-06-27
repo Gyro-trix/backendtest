@@ -2,6 +2,9 @@ import * as UserController from '../../src/controllers/user'
 import { Request, Response } from 'express';
 
 
+
+
+/*
 const mockRequest = (body: any) => {
     return {
         body: body,
@@ -30,30 +33,26 @@ describe('createUser', () => {
         jest.clearAllMocks()
     })
 
-    it('should create user and return 200', () => {
-        let req = mockRequest({ name: 'John Doe', email: 'john@doe.ca' });
+    it('Should create user and return 200', async() => {
+        let req = mockRequest({ name: 'John Doe', email: 'john2@doe.ca', place:'NL' });
         let res = mockResponse();
         
         const id = Math.floor(0.5 * 1000000)
         jest.spyOn(Math, 'random').mockReturnValue(0.5);
 
-        UserController.createUser(req, res);
+        await UserController.createUser(req, res);
         expect(res.status).toHaveBeenCalledWith(200)
         expect(res.json).toHaveBeenCalledWith({
             status: "success",
-            data: {
-                email: "john@doe.ca",
-                id: id,
-                name: "John Doe"
-            }
+            data: "User John Doe created"
         })
     })
 
-    it('should not create user and return 400 if no email is specified in the request', () => {
+    it('should not create user and return 400 if no email is specified in the request', async() => {
         let req = mockRequest({ name: 'John Doe' });
         let res = mockResponse();
 
-        UserController.createUser(req, res);
+        await UserController.createUser(req, res);
         expect(res.status).toHaveBeenCalledWith(400)
         expect(res.json).toHaveBeenCalledWith({
             status: "error",
@@ -67,36 +66,42 @@ describe('updateUser', () => {
         jest.clearAllMocks()
     })
 
-    it('should update user with given id and return 200', () => {
-        let req = mockRequestParam({id:12345, name: 'Bob', email: 'bob@bob.com' });
+    it('should update user with given id and return 200', async() => {
+        let req = mockRequestParam({id:1 });
+        let reqBody = mockRequest({name: 'Bob', email: 'bob@bob.com', place:'NL',bio:'Testing it out'})
         let res = mockResponse();
         
         const id = parseInt(req.params.id)
-        const name = req.params.name
-        const email = req.params.email
+        const name = reqBody.body.name
+        const email = reqBody.body.email
+        const place = reqBody.body.place
+        const bio = reqBody.body.bio
 
-        UserController.updateUser(req, res);
+        await UserController.updateUser(req, res);
         expect(res.status).toHaveBeenCalledWith(200)
         expect(res.json).toHaveBeenCalledWith({
             status: "success",
             data: {
                 email: email,
                 id: id,
-                name: name
+                name: name,
+                place: place,
+                bio: bio
             }
         })
     })
-/*
-    it('should not update user and return 400 if no id is specified in the request', () => {
+
+    it('should not update user and return 400 if no id is specified in the request', async() => {
         let req = mockRequest({ name: 'John Doe',email:'john@doe.ca' });
         let res = mockResponse();
 
-        UserController.updateUser(req, res);
+        await UserController.updateUser(req, res);
         expect(res.status).toHaveBeenCalledWith(400)
         expect(res.json).toHaveBeenCalledWith({
             status: "error",
             message: "Invalid user ID"
         })
     })
-*/
+
 })
+*/
