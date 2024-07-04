@@ -3,10 +3,11 @@ import * as AuthController from '../controllers/auth'
 
 const router = Router()
 
+
+router.post('/', AuthController.createUserAuth)
+router.get('/', AuthController.getUserAuth)
+router.put('/:id', AuthController.updateUserAuth)
 /*
-router.post('/', AuthController.createUser)
-router.get('/:id', AuthController.getUser)
-router.put('/:id', AuthController.updateUser)
 router.delete('/:id', AuthController.deleteUser)
 */
 

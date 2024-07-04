@@ -129,7 +129,7 @@ describe('getUser', ()=>{
       });
     
     it('should return user data if ID exists', async () => {
-        const mockUser = [{ id: 1, name: 'John Doe', email: 'john@example.com', place: 'NY', bio: 'Bio' }];
+        const mockUser = [{ id: 1, name: 'Bob Tester', email: 'bob@tester.com', place: 'NL', bio: 'Bio' }];
         (mockPool.query as jest.Mock).mockResolvedValueOnce([mockUser]);
     
         await getUser(req as Request, res as Response);
