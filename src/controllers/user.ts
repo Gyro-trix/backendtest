@@ -67,7 +67,7 @@ export async function createUser(req:Request, res:Response){
     INSERT INTO users(email,name,place)
     VALUES(?,?,?)
     `, [email,name,place])
-
+  console.log(row)
   return res.status(200).json(rest.success(name))
 
 }
