@@ -9,9 +9,11 @@
 </head>
 
 <body>
-    <form action="/login" method="post">
-        <input name="username" placeholder="username" />
-        <input name="password" type="password" placeholder="password" />
+    <form action="/api/auth" method="post">
+        <label for="username">Username: </label>
+        <input name="username" id = "username"  required/><br><br>
+        <label for="password">Password:</label>
+        <input name="password" id = "password" type="password"  required/><br><br>
         <button type="submit">Login</button>
     </form>
 </body>

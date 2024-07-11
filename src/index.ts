@@ -2,12 +2,18 @@ import express from 'express'
 import userRouter from './routers/user'
 import authRouter from './routers/auth'
 import path from 'path'
+import cookieParser from 'cookie-parser'
+import bodyParser from 'body-parser'
+import {authJwt} from "./middleware/jwtauth"
+
 
 const PORT = process.env.PORT ?? 5001
 
 const app = express()
 
 app.use(express.json())
+app.use(cookieParser())
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/',(req,res)=>{
     res.sendFile(path.join(__dirname, "../public/index.html"))
@@ -17,9 +23,11 @@ app.get('/landing',(req,res)=>{
     res.sendFile(path.join(__dirname, "../public/landing.html"))
 })
 
-app.use('/api/user', userRouter)
-
 app.use('/api/auth', authRouter)
+
+app.use('/api/user', authJwt, userRouter)
+
+
 
 /**
  * Exercise:

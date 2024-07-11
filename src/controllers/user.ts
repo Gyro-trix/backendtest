@@ -73,9 +73,9 @@ export async function createUser(req:Request, res:Response){
 }
 
 export async function getUser(req:Request, res:Response){
-  
+  console.log(req.params.id)
   const id = parseInt(req.params.id)
-
+  
   //Make sure id given is a number
   if (Number.isNaN(id)) {
     return res.status(400).json(rest.error('ID is not a number'))

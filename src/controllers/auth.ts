@@ -1,12 +1,19 @@
 import { type Request, type Response } from 'express'
 import * as rest from '../utils/rest'
 import Joi from 'joi'
-//import { JsonWebKey } from 'crypto'
 import mysql, { RowDataPacket } from 'mysql2'
 import * as crypto from 'crypto'
 import * as dotenv from 'dotenv'
+import jwt, {Secret} from 'jsonwebtoken'
+
 
 dotenv.config()
+
+const secret: Secret = ""+process.env.JWT_SECRET+""
+
+if(!secret){
+    throw new Error("Missing JWT_SECRET in Environment variables")
+}
 
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST,
@@ -73,14 +80,15 @@ async function verifyPassword(password: string, savedSalt: Buffer, savedHash: st
 
 export async function createUserAuth(req:Request, res:Response){
     const {error, value} = UserSchema.validate(req.body)
-    console.log(value)
+    
     if (error !== undefined) {
         return res.status(400).json(rest.error('User data is not formatted correctly'))
     }
     const username = value.username
     const password = value.password
     const salt = crypto.randomBytes(16)
-    console.log(salt)
+    
+    
     
     try{
         const hashedPassword = await hashPassword(password,salt);
@@ -105,7 +113,8 @@ export async function createUserAuth(req:Request, res:Response){
 
 }
 
-export async function getUserAuth(req:Request, res:Response){
+export async function authUser(req:Request, res:Response){
+    
     const {error, value} = AuthSchema.validate(req.body)
     const username = value.username
     const password = value.password
@@ -120,22 +129,13 @@ export async function getUserAuth(req:Request, res:Response){
     const passwordhash = getResult.map(row => row.password_hash)
     const salt = getResult.map(row => row.salt)
     const logIn = await verifyPassword(password,salt[0],passwordhash[0])
-    return res.status(200).json(rest.success(logIn))
-}
-
-export async function updateUserAuth(req:Request, res:Response){
-    const {error, value} = AuthSchema.validate(req.body)
-    const username = value.username
-    const password = value.password
-
-    if (error !== undefined) {
-        return res.status(400).json(rest.error('User data is not formatted correctly'))
+    console.log(logIn)
+    if(logIn === true){
+        const token = jwt.sign(value,secret,{expiresIn:"1h"})
+        res.cookie('token', token,{
+            httpOnly: true,
+        })
+        return res.redirect('/landing')
     }
-
-
-
-}
-
-export async function deleteUserAuth(req:Request, res:Response){
-
+    return res.status(500).json(rest.error("Something went wrong"))
 }
