@@ -1,6 +1,7 @@
 import express from 'express'
 import userRouter from './routers/user'
 import authRouter from './routers/auth'
+import path from 'path'
 
 const PORT = process.env.PORT ?? 5001
 
@@ -8,7 +9,16 @@ const app = express()
 
 app.use(express.json())
 
+app.get('/',(req,res)=>{
+    res.sendFile(path.join(__dirname, "../public/index.html"))
+})
+
+app.get('/landing',(req,res)=>{
+    res.sendFile(path.join(__dirname, "../public/landing.html"))
+})
+
 app.use('/api/user', userRouter)
+
 app.use('/api/auth', authRouter)
 
 /**
