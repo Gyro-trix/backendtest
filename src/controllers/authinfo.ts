@@ -1,10 +1,13 @@
 import { type Request, type Response } from 'express'
 import * as rest from '../utils/rest'
 import Joi from 'joi'
-//import { JsonWebKey } from 'crypto'
 import mysql, { RowDataPacket } from 'mysql2'
 import * as crypto from 'crypto'
 import * as dotenv from 'dotenv'
+
+import jwt, {Secret} from "jsonwebtoken"
+
+import { verifyPassword, hashPassword } from './auth'
 
 dotenv.config()
 
@@ -26,16 +29,6 @@ export interface User extends RowDataPacket{
   place: string
 }
 
-//Joi min and max 2 for place
-const UserSchema = Joi.object<User>({
-  id: Joi.number().optional(),
-  username: Joi.string().required(),
-  password: Joi.string().required(),
-  name: Joi.string().required(),
-  email: Joi.string().email().required(),
-  place: Joi.string().required(),
-})
-
 const AuthSchema = Joi.object<User>({
     id: Joi.number().optional(),
     username: Joi.string().required(),
@@ -43,46 +36,68 @@ const AuthSchema = Joi.object<User>({
     newpassword: Joi.string().optional()
   })
 
-async function hashPassword(password: string, salt: Buffer): Promise<string>{
-    return new Promise ((resolve, reject) =>{
-        crypto.pbkdf2(password, salt, 1000, 64, 'sha512', (err, derivedKey) =>{
-            if(err){
-                reject(err);
-            } else {
-                resolve(derivedKey.toString('hex'))
-            }
-        })
-    })
-}
-
-async function verifyPassword(password: string, savedSalt: Buffer, savedHash: string):Promise<boolean>{
-    const salt = savedSalt
-
-    return new Promise((resolve,reject) =>{
-        crypto.pbkdf2(password, salt, 1000, 64, 'sha512', (err, derivedKey) =>{
-            if(err){
-                reject(err);
-            } else{
-                const hashedPassword = derivedKey.toString('hex')
-                resolve(hashedPassword === savedHash)
-            }
-        })
-    }) 
-}
+const DelSchema =  Joi.object<User>({
+    id: Joi.number().optional(),
+    username: Joi.string().required(),
+    iat: Joi.number().optional(),
+    exp: Joi.number().optional()
+  })
 
 export async function updateUserAuth(req:Request, res:Response){
     const {error, value} = AuthSchema.validate(req.body)
     const username = value.username
-    const password = value.password
+    const oldpassword = value.password
+    const newpassword = value.newpassword
+    const newsalt = crypto.randomBytes(16)
 
     if (error !== undefined) {
         return res.status(400).json(rest.error('User data is not formatted correctly'))
     }
 
+    const getQuery = 'SELECT * FROM userauth WHERE username = ?'
+    const [getResult] = await pool.execute<User[]>(getQuery,[username])
 
+    if(getResult.length === 0){
+        return res.status(400).json(rest.error('No Such User Exists'))
+    }
+
+    const passwordhash = getResult.map(row => row.password_hash)
+    const salt = getResult.map(row => row.salt)
+    const checkold = await verifyPassword(oldpassword,salt[0],passwordhash[0])
+
+    if(checkold === true){
+        const hashednewpassword = await hashPassword(newpassword, newsalt)
+        const [row] = await pool.query(`
+            UPDATE userauth
+            SET password_hash = ?, salt = ?
+            WHERE username = ?
+            `, [hashednewpassword,newsalt,username])
+        return res.status(200).json(rest.success(row))
+    } else {
+        return res.status(400).json(rest.error('Old passwrod does not match'))
+    }
 
 }
 
 export async function deleteUserAuth(req:Request, res:Response){
+    
+    const token = req.cookies.token
+    
+    const {error, value} = DelSchema.validate(jwt.decode(token))
+    console.log(value)
+    
+    if (error !== undefined) {
+        return res.status(400).json(rest.error('User data is not formatted correctly'))
+    }
+    
+    if(token){
+        const [row] = await pool.query(`
+            DELETE FROM userauth
+            WHERE id = ?
+            `, [value.id])
+        return res.status(200).json(rest.success("User Deleted"))
+    } else{
+        return res.status(400).json(rest.error('No Cookie Found'))
+    }
 
 }

@@ -50,7 +50,7 @@ const AuthSchema = Joi.object<User>({
     newpassword: Joi.string().optional()
   })
 
-async function hashPassword(password: string, salt: Buffer): Promise<string>{
+export async function hashPassword(password: string, salt: Buffer): Promise<string>{
     return new Promise ((resolve, reject) =>{
         crypto.pbkdf2(password, salt, 1000, 64, 'sha512', (err, derivedKey) =>{
             if(err){
@@ -62,7 +62,7 @@ async function hashPassword(password: string, salt: Buffer): Promise<string>{
     })
 }
 
-async function verifyPassword(password: string, savedSalt: Buffer, savedHash: string):Promise<boolean>{
+export async function verifyPassword(password: string, savedSalt: Buffer, savedHash: string):Promise<boolean>{
     const salt = savedSalt
 
     return new Promise((resolve,reject) =>{
