@@ -5,6 +5,6 @@ const router = Router()
 
 
 //router.post('/', AuthController.createUserAuth)
-router.post('/', AuthController.authUser)
+router.get('/', AuthController.authUser)
 
 export default router

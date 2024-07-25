@@ -88,8 +88,6 @@ export async function createUserAuth(req:Request, res:Response){
     const password = value.password
     const salt = crypto.randomBytes(16)
     
-    
-    
     try{
         const hashedPassword = await hashPassword(password,salt);
         
@@ -126,16 +124,26 @@ export async function authUser(req:Request, res:Response){
     const getQuery = 'SELECT * FROM userauth WHERE username = ?'
     const [getResult] = await pool.execute<User[]>(getQuery,[username])
     
+    if(getResult.length === 0){
+        return res.status(400).json(rest.error('No Such User Exists'))
+    }
+
     const passwordhash = getResult.map(row => row.password_hash)
     const salt = getResult.map(row => row.salt)
+    const userId = getResult.map(row => row.id)
     const logIn = await verifyPassword(password,salt[0],passwordhash[0])
-    console.log(logIn)
+    const userInfo = {
+        id: userId[0],
+        username: username
+    }
     if(logIn === true){
-        const token = jwt.sign(value,secret,{expiresIn:"1h"})
+        const token = jwt.sign(userInfo,secret,{expiresIn:"1h"})
         res.cookie('token', token,{
             httpOnly: true,
         })
-        return res.redirect('/landing')
+        return res.status(200).json(rest.success(token))
+    } else {
+        return res.status(400).json(rest.error('Invalid Username or Password'))
     }
-    return res.status(500).json(rest.error("Something went wrong"))
+    //return res.status(500).json(rest.error("Something went wrong"))
 }

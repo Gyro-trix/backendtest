@@ -1,11 +1,12 @@
 import express from 'express'
 import userRouter from './routers/user'
 import authRouter from './routers/auth'
+import authInfoRouter from './routers/authinfo'
 import path from 'path'
 import cookieParser from 'cookie-parser'
 import bodyParser from 'body-parser'
 import {authJwt} from "./middleware/jwtauth"
-
+import {authUser} from "./middleware/userauth"
 
 const PORT = process.env.PORT ?? 5001
 
@@ -24,10 +25,8 @@ app.get('/landing',(req,res)=>{
 })
 
 app.use('/api/auth', authRouter)
-
-app.use('/api/user', authJwt, userRouter)
-
-
+app.use('/api/authinfo',authJwt, authInfoRouter)
+app.use('/api/user', authJwt, authUser,(req,res) =>{userRouter})
 
 /**
  * Exercise:
