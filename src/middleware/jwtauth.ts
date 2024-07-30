@@ -16,9 +16,10 @@ export const authJwt = (req: Request, res: Response, next: NextFunction) =>{
 
     try{
         const verified = jwt.verify(token,secret)
+        if(verified){
+            next()
+        }
         
-        //req.user = verified
-        next()
     } catch (error){
         res.clearCookie('token')
         return res.redirect('/')

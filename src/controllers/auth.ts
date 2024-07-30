@@ -40,7 +40,6 @@ const UserSchema = Joi.object<User>({
   password: Joi.string().required(),
   name: Joi.string().required(),
   email: Joi.string().email().required(),
-  place: Joi.string().required(),
 })
 
 const AuthSchema = Joi.object<User>({
@@ -69,7 +68,7 @@ export async function verifyPassword(password: string, savedSalt: Buffer, savedH
         crypto.pbkdf2(password, salt, 1000, 64, 'sha512', (err, derivedKey) =>{
             if(err){
                 reject(err);
-            } else{
+            } else{ 
                 const hashedPassword = derivedKey.toString('hex')
                 resolve(hashedPassword === savedHash)
             }
@@ -93,15 +92,14 @@ export async function createUserAuth(req:Request, res:Response){
         
         const name = value.name;
         const email = value.email;
-        const place = value.place;
     
         //Create entry into user table
-        const insertUser = 'INSERT INTO users (name,email,place) VALUES (?,?,?)'
-        const [userInfo] = await pool.execute(insertUser,[name,email,place]);
-        const user_id = (userInfo as any).insertId
+        const insertUser = 'INSERT INTO users (name,email) VALUES (?,?)'
+        const [userInfo] = await pool.execute(insertUser,[name,email]);
+        //const user_id = (userInfo as any).insertId
         
-        const insertQuery = 'INSERT INTO userauth (username,password_hash,salt,user_id) VALUES (?,?,?,?)';
-        const [result] = await pool.execute(insertQuery, [username,hashedPassword,salt,user_id]);
+        const insertQuery = 'INSERT INTO userauth (username,password_hash,salt) VALUES (?,?,?)';
+        const [result] = await pool.execute(insertQuery, [username,hashedPassword,salt]);
         console.log(result);
         return res.status(200).json(rest.success(result))
     } catch(error){
