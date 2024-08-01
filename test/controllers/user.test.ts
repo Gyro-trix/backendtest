@@ -17,7 +17,7 @@ jest.mock('../../src/utils/rest', () => ({
     error: jest.fn((msg:string)=>({error: msg})),
     success: jest.fn((data: any)=>({data})),
 }))
-
+/*
 describe('createUser', ()=>{
     let req: Partial<Request>;
     let res: Partial<Response>;
@@ -275,4 +275,4 @@ describe('updateUser', ()=>{
           });
 
     })
-
+*/

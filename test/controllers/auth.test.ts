@@ -1,131 +1,192 @@
-import * as rest from '../../src/utils/rest'
-import { Request, Response } from 'express';
-import { createUserAuth, authUser} from '../../src/controllers/auth'
-import mysql from 'mysql2'
+import { type Request, type Response } from 'express';
+import { createUserAuth, authUser, hashPassword, verifyPassword } from '../../src/controllers/auth';
+import * as rest from '../../src/utils/rest';
+import * as mysql from 'mysql2/promise';
+import * as crypto from 'crypto';
+import * as dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
 
-jest.mock('mysql2', () => {
-    const mockPool ={
-        query: jest.fn(),
-        promise: jest.fn().mockReturnThis(),
-    };
-    return{
-        createPool: jest.fn((config)=>mockPool)
-    };
+dotenv.config();
+
+jest.mock('mysql2/promise');
+jest.mock('crypto');
+jest.mock('jsonwebtoken');
+jest.mock('dotenv', () => ({
+  config: jest.fn(),
+}));
+
+const mockPool = {
+  execute: jest.fn(),
+};
+
+(mysql.createPool as jest.Mock).mockReturnValue(mockPool);
+
+describe('hashPassword', () => {
+  it('should hash password correctly', async () => {
+    const mockSalt = Buffer.from('salt');
+    const mockHash = Buffer.from('hashedPassword');
+    (crypto.pbkdf2 as jest.Mock).mockImplementation(
+      (password, salt, iterations, keylen, digest, callback) => {
+        callback(null, mockHash);
+      }
+    );
+
+    const result = await hashPassword('password', mockSalt);
+    expect(result).toBe(mockHash.toString('hex'));
+  });
 });
 
-jest.mock('../../src/utils/rest', () => ({
-    error: jest.fn((msg:string)=>({error: msg})),
-    success: jest.fn((data: any)=>({data})),
-}))
+describe('verifyPassword', () => {
+  it('should verify password correctly', async () => {
+    const mockSalt = Buffer.from('salt');
+    const mockHash = Buffer.from('hashedPassword');
+    (crypto.pbkdf2 as jest.Mock).mockImplementation(
+      (password, salt, iterations, keylen, digest, callback) => {
+        callback(null, mockHash);
+      }
+    );
 
-describe('createUser', ()=>{
-    let req: Partial<Request>;
-    let res: Partial<Response>;
-    const mockPool = mysql.createPool({
-        host:'localhost',
-        user:'user',
-        password:'password',
-        database:'databse',
-    });
+    const result = await verifyPassword('password', mockSalt, mockHash.toString('hex'));
+    expect(result).toBe(true);
+  });
+});
 
-    beforeEach(()=>{
-        req = {
-            body:{
-                username: "Tester1999",
-                email: "tester1999@test.com"
-            },
-        };
-        res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn()
-        };
-    });
+describe('createUserAuth', () => {
+  let req: Partial<Request>;
+  let res: Partial<Response>;
 
-    afterEach(()=>{
-        jest.clearAllMocks();
-    });
+  beforeEach(() => {
+    req = {
+      body: {
+        username: 'testuser',
+        password: 'testpassword',
+        name: 'Test User',
+        email: 'test@example.com',
+      },
+    };
 
-    it('should return error if user data is not formatted correctly', async () => {
-        req.body = { name: 'test test' }; // Incomplete data to trigger validation error
-        await createUserAuth(req as Request, res as Response);
-    
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith({ error: 'User data is not formatted correctly' });
-      });
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+  });
 
-      it('Unable to connect to the Database table', async () => {
-        await createUserAuth(req as Request, res as Response);
-    
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ error: "Database Error" });
-      });
-    
-      it('should create user and return success if data is valid and email is unique', async () => {
-        (mockPool.query as jest.Mock)
-          .mockResolvedValueOnce([[]]) // No existing user with the email
-          .mockResolvedValueOnce([{ insertId: 1 }]); // Simulate successful insert
-    
-        await createUserAuth(req as Request, res as Response);
-    
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith({ data: "User Created!" });
-      });
-    
-})
+  it('should return 400 if user data is not formatted correctly', async () => {
+    req.body = {}; // Invalid data
+    await createUserAuth(req as Request, res as Response);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(rest.error('User data is not formatted correctly'));
+  });
 
-describe('authUser', ()=>{
-    let req: Partial<Request>;
-    let res: Partial<Response>;
-    const mockPool = mysql.createPool({
-        host:'localhost',
-        user:'user',
-        password:'password',
-        database:'databse',
-    });
+  it('should create a new user and return 200', async () => {
+    const mockSalt = Buffer.from('salt');
+    const mockHash = 'hashedPassword';
+    (crypto.randomBytes as jest.Mock).mockReturnValue(mockSalt);
+    (crypto.pbkdf2 as jest.Mock).mockImplementation(
+      (password, salt, iterations, keylen, digest, callback) => {
+        callback(null, Buffer.from(mockHash));
+      }
+    );
+    mockPool.execute.mockResolvedValueOnce([{ insertId: 1 }]); // Simulate user insert
+    mockPool.execute.mockResolvedValueOnce([{ insertId: 2 }]); // Simulate auth insert
 
-    beforeEach(()=>{
-        req = {
-            body:{
-                username: "Tester1999",
-                email: "tester1999@test.com"
-            },
-        };
-        res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn()
-        };
-    });
+    await createUserAuth(req as Request, res as Response);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(rest.success('User Created!'));
+  });
 
-    afterEach(()=>{
-        jest.clearAllMocks();
-    });
+  it('should return 500 on database error', async () => {
+    mockPool.execute.mockRejectedValueOnce(new Error('DB Error'));
 
-    it('should return error if ID is not a number', async () => {
-        req.params!.id = 'abc';
-        await authUser(req as Request, res as Response);
-    
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith({ error: 'ID is not a number' });
-      });
+    await createUserAuth(req as Request, res as Response);
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith(rest.error('Database Error'));
+  });
+});
 
-    it('should return error if no entry for given ID', async () => {
-        (mockPool.query as jest.Mock).mockResolvedValueOnce([[]]);
-    
-        await authUser(req as Request, res as Response);
-    
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith({ error: 'No Entry for given ID' });
-      });
-    
-    it('Return Cookie/Token', async () => {
-        const mockUser = [{ id: 1, name: 'Bob Tester', email: 'bob@tester.com', place: 'NL', bio: 'Bio' }];
-        (mockPool.query as jest.Mock).mockResolvedValueOnce([mockUser]);
-    
-        await authUser(req as Request, res as Response);
-    
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith({ data: mockUser });
-      });
-})
+describe('authUser', () => {
+  let req: Partial<Request>;
+  let res: Partial<Response>;
 
+  beforeEach(() => {
+    req = {
+      body: {
+        username: 'testuser',
+        password: 'testpassword',
+      },
+    };
 
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+      cookie: jest.fn(),
+    };
+  });
+
+  it('should return 400 if user data is not formatted correctly', async () => {
+    req.body = {}; // Invalid data
+    await authUser(req as Request, res as Response);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(rest.error('User data is not formatted correctly'));
+  });
+
+  it('should return 400 if no such user exists', async () => {
+    mockPool.execute.mockResolvedValueOnce([[]]); // No user found
+    await authUser(req as Request, res as Response);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(rest.error('No Such User Exists'));
+  });
+
+  it('should return 200 and a token on successful login', async () => {
+    const mockSalt = Buffer.from('salt');
+    const mockHash = 'hashedPassword';
+    (crypto.pbkdf2 as jest.Mock).mockImplementation(
+      (password, salt, iterations, keylen, digest, callback) => {
+        callback(null, Buffer.from(mockHash));
+      }
+    );
+    const mockToken = 'jwtToken';
+    (jwt.sign as jest.Mock).mockReturnValue(mockToken);
+
+    mockPool.execute.mockResolvedValueOnce([
+      [
+        {
+          id: 1,
+          username: 'testuser',
+          password_hash: mockHash,
+          salt: mockSalt,
+        },
+      ],
+    ]);
+
+    await authUser(req as Request, res as Response);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(rest.success(mockToken));
+    expect(res.cookie).toHaveBeenCalledWith('token', mockToken, { httpOnly: true });
+  });
+
+  it('should return 400 on invalid username or password', async () => {
+    const mockSalt = Buffer.from('salt');
+    const mockHash = 'hashedPassword';
+    (crypto.pbkdf2 as jest.Mock).mockImplementation(
+      (password, salt, iterations, keylen, digest, callback) => {
+        callback(null, Buffer.from('wrongHash'));
+      }
+    );
+
+    mockPool.execute.mockResolvedValueOnce([
+      [
+        {
+          id: 1,
+          username: 'testuser',
+          password_hash: mockHash,
+          salt: mockSalt,
+        },
+      ],
+    ]);
+
+    await authUser(req as Request, res as Response);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(rest.error('Invalid Username or Password'));
+  });
+});

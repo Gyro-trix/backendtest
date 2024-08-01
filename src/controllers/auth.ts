@@ -27,11 +27,12 @@ type email = string
 export interface User extends RowDataPacket{
   id?: number
   username: string
-  password: string
-  name: string
-  email: string
-  place: string
-}
+  password_hash: string
+  created_at: string
+  updated_at: string
+  salt: Buffer
+  last_login: string
+};
 
 //Joi min and max 2 for place
 const UserSchema = Joi.object<User>({
@@ -114,15 +115,17 @@ export async function authUser(req:Request, res:Response){
     const {error, value} = AuthSchema.validate(req.body)
     const username = value.username
     const password = value.password
-
+console.log(value)
     if (error !== undefined) {
         return res.status(400).json(rest.error('User data is not formatted correctly'))
     }
 
     const getQuery = 'SELECT * FROM userauth WHERE username = ?'
-    const [getResult] = await pool.execute<User[]>(getQuery,[username])
+    const [getResult] = await pool.execute<RowDataPacket[]>(getQuery,[username]);
+
+    const users: User[] = getResult as User[];
     
-    if(getResult.length === 0){
+    if(users.length === 0){
         return res.status(400).json(rest.error('No Such User Exists'))
     }
 
@@ -139,7 +142,8 @@ export async function authUser(req:Request, res:Response){
         res.cookie('token', token,{
             httpOnly: true,
         })
-        return res.status(200).json(rest.success(token))
+        res.status(200).json({redirectUrl:'pantry-pal/#/'})
+        return 
     } else {
         return res.status(400).json(rest.error('Invalid Username or Password'))
     }
