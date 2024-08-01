@@ -101,10 +101,10 @@ export async function createUserAuth(req:Request, res:Response){
         const insertQuery = 'INSERT INTO userauth (username,password_hash,salt) VALUES (?,?,?)';
         const [result] = await pool.execute(insertQuery, [username,hashedPassword,salt]);
         console.log(result);
-        return res.status(200).json(rest.success(result))
+        return res.status(200).json(rest.success("User Created!"))
     } catch(error){
         console.error("Error:",error);
-        return res.status(400).json(rest.error("Error"))
+        return res.status(500).json(rest.error("Database Error"))
     }
 
 }
@@ -143,5 +143,4 @@ export async function authUser(req:Request, res:Response){
     } else {
         return res.status(400).json(rest.error('Invalid Username or Password'))
     }
-    //return res.status(500).json(rest.error("Something went wrong"))
 }
