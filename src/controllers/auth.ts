@@ -101,8 +101,8 @@ export async function createUserAuth(req:Request, res:Response){
         
         const insertQuery = 'INSERT INTO userauth (username,password_hash,salt) VALUES (?,?,?)';
         const [result] = await pool.execute(insertQuery, [username,hashedPassword,salt]);
-        console.log(result);
-        return res.status(200).json(rest.success("User Created!"))
+        res.status(200).json({redirectUrl:'pantry-pal/#/'})
+        return 
     } catch(error){
         console.error("Error:",error);
         return res.status(500).json(rest.error("Database Error"))
@@ -115,7 +115,7 @@ export async function authUser(req:Request, res:Response){
     const {error, value} = AuthSchema.validate(req.body)
     const username = value.username
     const password = value.password
-console.log(value)
+
     if (error !== undefined) {
         return res.status(400).json(rest.error('User data is not formatted correctly'))
     }

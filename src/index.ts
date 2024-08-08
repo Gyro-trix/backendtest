@@ -2,6 +2,7 @@ import express from 'express'
 import userRouter from './routers/user'
 import authRouter from './routers/auth'
 import authInfoRouter from './routers/authinfo'
+import storageRouter from './routers/storage'
 import cookieParser from 'cookie-parser'
 import bodyParser from 'body-parser'
 import {authJwt} from "./middleware/jwtauth"
@@ -43,9 +44,13 @@ const createTablesIfNotExists = async () => {
     const createStoragesTableQuery =`
     CREATE TABLE IF NOT EXISTS storages( 
         id INT AUTO_INCREMENT UNIQUE PRIMARY KEY,
+        image VARCHAR(255),
+        location VARCHAR(20) NOT NULL,
         name VARCHAR(20) NOT NULL,
-        email VARCHAR(255)  UNIQUE NOT NULL,
-        bio TEXT
+        owner INT NOT NULL,
+        type VARCHAR(20),
+        share BOOLEAN,
+        FOREIGN KEY (owner) REFERENCES userauth(id) 
     );
     `;
 
@@ -54,6 +59,7 @@ const createTablesIfNotExists = async () => {
     connection = await pool.getConnection();
     await connection.execute(createAuthTableQuery)
     await connection.execute(createUserTableQuery)
+    await connection.execute(createStoragesTableQuery)
     console.log("Table created or already exists")
   } catch (error){
     console.error("Error Creating Table",error)
@@ -80,6 +86,7 @@ app.use(cookieParser())
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRouter)
+app.use('/api/storage',authJwt, storageRouter)
 app.use('/api/authinfo',authJwt, authInfoRouter)
 app.use('/api/user', authJwt, authUser,(req,res) =>{userRouter})
 
