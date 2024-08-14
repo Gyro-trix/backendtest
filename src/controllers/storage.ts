@@ -28,9 +28,9 @@ export interface Storage extends RowDataPacket{
 
 export interface User{
     id: number
-username: string
-iat: string
-exp: string
+    username: string
+    iat: string
+    exp: string
 }
 
 const StorageSchema = Joi.object<Storage>({
@@ -95,9 +95,54 @@ export async function getStorage(req:Request, res:Response){
   return res.status(200).json(rest.success(row))
 }
 
-export async function updateStorage(){
-    
+export async function updateStorage(req:Request, res:Response){
+  const {error, value} = StorageSchema.validate(req.body)
+  
+  
+  const id = value.id
+  const image = value.image
+  const location = value.location
+  const name = value.name
+  const owner = value.owner
+  const type = value.type
+  const share = value.share
+  
+  if (error !== undefined) {
+      return res.status(400).json(rest.error('User data is not formatted correctly'))
+  }
+
+  //check if owner is current user
+
+  const getQuery = 'SELECT * FROM storages WHERE id = ?'
+  const [getResult] = await pool.execute<Storage[]>(getQuery,[id])
+
+  if(getResult.length === 0){
+      return res.status(400).json(rest.error('No Such Storage Exists'))
+  }
+      const [row] = await pool.query(`
+          UPDATE storages
+          SET image = ?, location = ?, name = ?, type = ?, share = ?
+          WHERE id = ?
+          `, [image,location,name,type,share,id])
+      return res.status(200).json(rest.success(row))
 }
-export async function deleteStorage(){
-    
+
+
+export async function deleteStorage(req:Request, res:Response){
+  
+  /*
+  const token = req.cookies.token
+  const {error, value} = DelSchema.validate(jwt.decode(token))
+  */
+  
+  const {error, value} = StorageSchema.validate(req.body)
+
+  if (error !== undefined) {
+      return res.status(400).json(rest.error('Request improperly formatted'))
+  }
+      const [row] = await pool.query(`
+          DELETE FROM storages
+          WHERE id = ?
+          `, [value.id])
+      return res.status(200).json(rest.success("User Deleted"))
 }
