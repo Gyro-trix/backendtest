@@ -84,7 +84,7 @@ export async function getStorage(req:Request, res:Response){
     SELECT * FROM storages
     WHERE owner = ?
     `, [user.id])
-  console.log(row)  
+  
   //If there are empty results, the ID is not in the table
   const values = Object.values(row)
   if (values.length === 0){

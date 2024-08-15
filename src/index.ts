@@ -30,7 +30,8 @@ const createTablesIfNotExists = async () => {
         created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         salt VARBINARY(16) NOT NULL,
-        last_login TIMESTAMP NULL DEFAULT NULL
+        last_login TIMESTAMP NULL DEFAULT NULL,
+        adminlevel INT NOT NULL DEFAULT 0
     );
     `;
     const createUserTableQuery =`

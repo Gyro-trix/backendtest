@@ -4,7 +4,7 @@ import Joi from 'joi'
 import mysql, { RowDataPacket } from 'mysql2'
 import * as crypto from 'crypto'
 import * as dotenv from 'dotenv'
-import jwt, {Secret} from 'jsonwebtoken'
+import jwt, {JwtPayload, Secret} from 'jsonwebtoken'
 
 
 dotenv.config()
@@ -32,7 +32,12 @@ export interface User extends RowDataPacket{
   updated_at: string
   salt: Buffer
   last_login: string
+  adminlevel: number
 };
+
+interface CustomeJWTPayload extends JwtPayload{
+    exp?: number
+}
 
 //Joi min and max 2 for place
 const UserSchema = Joi.object<User>({
@@ -133,18 +138,28 @@ export async function authUser(req:Request, res:Response){
     const salt = getResult.map(row => row.salt)
     const userId = getResult.map(row => row.id)
     const logIn = await verifyPassword(password,salt[0],passwordhash[0])
+    
+    const getUserInfo = 'SELECT * FROM users WHERE id = ?'
+    const [getInfo] = await pool.execute<RowDataPacket[]>(getUserInfo,[userId[0]])
+    const userI = getInfo.map(row => row.name)
+    console.log(userI)
     const userInfo = {
         id: userId[0],
         username: username
     }
+
     if(logIn === true){
-        const token = jwt.sign(userInfo,secret,{expiresIn:"10h"})
+        
+        const token = jwt.sign(userInfo,secret,{expiresIn:"10mins"})
+        const decoded = jwt.decode(token) as CustomeJWTPayload
+        const expiry = decoded.exp
+        
         res.cookie('token', token,{
             httpOnly: true,
             secure: true, 
             sameSite: 'none'
         })
-        res.status(200).json('Logged in')
+        res.status(200).json({authenticated: true, name: userI[0], expiry: expiry})
         return 
     } else {
         return res.status(400).json(rest.error('Invalid Username or Password'))
