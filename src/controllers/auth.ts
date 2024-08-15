@@ -138,11 +138,13 @@ export async function authUser(req:Request, res:Response){
         username: username
     }
     if(logIn === true){
-        const token = jwt.sign(userInfo,secret,{expiresIn:"1h"})
+        const token = jwt.sign(userInfo,secret,{expiresIn:"10h"})
         res.cookie('token', token,{
             httpOnly: true,
+            secure: true, 
+            sameSite: 'none'
         })
-        res.status(200).json({redirectUrl:'pantry-pal/#/'})
+        res.status(200).json('Logged in')
         return 
     } else {
         return res.status(400).json(rest.error('Invalid Username or Password'))
