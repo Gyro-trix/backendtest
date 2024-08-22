@@ -137,6 +137,7 @@ export async function authUser(req:Request, res:Response){
     const passwordhash = getResult.map(row => row.password_hash)
     const salt = getResult.map(row => row.salt)
     const userId = getResult.map(row => row.id)
+    const adminlevel = getResult.map(row => row.adminlevel)[0]
     const logIn = await verifyPassword(password,salt[0],passwordhash[0])
     
     const getUserInfo = 'SELECT * FROM users WHERE id = ?'
@@ -150,16 +151,16 @@ export async function authUser(req:Request, res:Response){
 
     if(logIn === true){
         
-        const token = jwt.sign(userInfo,secret,{expiresIn:"10mins"})
+        const token = jwt.sign(userInfo,secret,{expiresIn: 5})
         const decoded = jwt.decode(token) as CustomeJWTPayload
-        const expiry = decoded.exp
+        const expiry = decoded.exp ?? 0
         
         res.cookie('token', token,{
             httpOnly: true,
             secure: true, 
             sameSite: 'none'
         })
-        res.status(200).json({authenticated: true, name: userI[0], expiry: expiry})
+        res.status(200).json({authenticated: true, name: userI[0], adminlevel: adminlevel ,expiry: expiry})
         return 
     } else {
         return res.status(400).json(rest.error('Invalid Username or Password'))
