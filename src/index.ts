@@ -3,6 +3,7 @@ import userRouter from './routers/user'
 import authRouter from './routers/auth'
 import authInfoRouter from './routers/authinfo'
 import storageRouter from './routers/storage'
+import itemRouter from './routers/items'
 import cookieParser from 'cookie-parser'
 import bodyParser from 'body-parser'
 import {authJwt} from "./middleware/jwtauth"
@@ -39,7 +40,8 @@ const createTablesIfNotExists = async () => {
         id INT AUTO_INCREMENT UNIQUE PRIMARY KEY,
         name VARCHAR(20) NOT NULL,
         email VARCHAR(255)  UNIQUE NOT NULL,
-        bio TEXT
+        bio TEXT,
+        FOREIGN KEY (id) REFERENCES userauth(id) 
     );
     `;
     const createStoragesTableQuery =`
@@ -54,6 +56,17 @@ const createTablesIfNotExists = async () => {
         FOREIGN KEY (owner) REFERENCES userauth(id) 
     );
     `;
+    const createItemTableQuery =`
+    CREATE TABLE IF NOT EXISTS items( 
+        id INT AUTO_INCREMENT UNIQUE PRIMARY KEY,
+        quantity INT NOT NULL,
+        name VARCHAR(20) NOT NULL,
+        size VARCHAR(20) NOT NULL,
+        storageid INT NOT NULL,
+        expiry DATETIME,
+        FOREIGN KEY (storageid) REFERENCES storages(id) 
+    );
+    `;
 
   let connection;
   try {
@@ -61,6 +74,7 @@ const createTablesIfNotExists = async () => {
     await connection.execute(createAuthTableQuery)
     await connection.execute(createUserTableQuery)
     await connection.execute(createStoragesTableQuery)
+    await connection.execute(createItemTableQuery)
     console.log("Table created or already exists")
   } catch (error){
     console.error("Error Creating Table",error)
@@ -88,6 +102,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRouter)
 app.use('/api/storage',authJwt, storageRouter)
+app.use('/api/items',authJwt, itemRouter)
 app.use('/api/authinfo',authJwt, authInfoRouter)
 app.use('/api/user', authJwt, authUser,(req,res) =>{userRouter})
 
