@@ -14,6 +14,7 @@ const pool = mysql.createPool({
   database: process.env.MYSQL_DATABASE,
 }).promise()
 
+
 export interface Item extends RowDataPacket{
   id?: number
   name: string
@@ -35,27 +36,27 @@ const ItemSchema = Joi.object<Storage>({
     name: Joi.string().required(),
     quantity: Joi.number().required(),
     size: Joi.string().required(),
-    storage: Joi.number().required(),
+    storageid: Joi.number().required(),
     expiry: Joi.string().required(),
   })
 
 export async function createItem(req:Request, res:Response){
     const {error, value} = ItemSchema.validate(req.body)
-    
+    console.log(value)
     if (error !== undefined) {
-        return res.status(400).json(rest.error('User data is not formatted correctly'))
+        return res.status(400).json(rest.error('Body data is not formatted correctly'))
     }
         
     try{
         const name = value.name;       
         const quantity = value.quantity;
         const size = value.size;
-        const storage = value.storage;
+        const storageid = value.storageid;
         const expiry = value.expiry;
 
-        const insertQuery = 'INSERT INTO items (name,quantity,size,storage,expiry) VALUES (?,?,?,?,?)';
-        await pool.execute(insertQuery, [name,quantity,size,storage,expiry]);
-        res.status(200).json({redirectUrl:'pantry-pal/#/'})
+        const insertQuery = 'INSERT INTO items (name,quantity,size,storageid,expiry) VALUES (?,?,?,?,?)';
+        await pool.execute(insertQuery, [name,quantity,size,storageid,expiry]);
+        res.status(200).json(rest.success("Item Added"))
         return 
     } catch(error){
         console.error("Error:",error);

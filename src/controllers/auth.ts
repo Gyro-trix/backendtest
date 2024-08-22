@@ -95,18 +95,25 @@ export async function createUserAuth(req:Request, res:Response){
     
     try{
         const hashedPassword = await hashPassword(password,salt);
-        
         const name = value.name;
         const email = value.email;
     
-        //Create entry into user table
-        const insertUser = 'INSERT INTO users (name,email) VALUES (?,?)'
-        const [userInfo] = await pool.execute(insertUser,[name,email]);
+        
         //const user_id = (userInfo as any).insertId
         
         const insertQuery = 'INSERT INTO userauth (username,password_hash,salt) VALUES (?,?,?)';
         const [result] = await pool.execute(insertQuery, [username,hashedPassword,salt]);
-        res.status(200).json({redirectUrl:'pantry-pal/#/'})
+
+        //Need to get id of new user
+        const getIdQuery = 'SELECT * FROM userauth WHERE username = ?'
+        const [userIdInfo] = await pool.execute(getIdQuery,[username]);
+        const user: User[] = userIdInfo as User[]
+        console.log(user[0].id)
+        //Create entry into user table
+        const insertUser = 'INSERT INTO users (id,name,email) VALUES (?,?,?)'
+        const [userInfo] = await pool.execute(insertUser,[user[0].id,name,email]);
+
+        res.status(200).json(rest.success("User Created"))
         return 
     } catch(error){
         console.error("Error:",error);
@@ -143,7 +150,6 @@ export async function authUser(req:Request, res:Response){
     const getUserInfo = 'SELECT * FROM users WHERE id = ?'
     const [getInfo] = await pool.execute<RowDataPacket[]>(getUserInfo,[userId[0]])
     const userI = getInfo.map(row => row.name)
-    console.log(userI)
     const userInfo = {
         id: userId[0],
         username: username
@@ -151,7 +157,7 @@ export async function authUser(req:Request, res:Response){
 
     if(logIn === true){
         
-        const token = jwt.sign(userInfo,secret,{expiresIn: 5})
+        const token = jwt.sign(userInfo,secret,{expiresIn: "10h"})
         const decoded = jwt.decode(token) as CustomeJWTPayload
         const expiry = decoded.exp ?? 0
         

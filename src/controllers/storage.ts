@@ -1,7 +1,7 @@
 import { type Request, type Response } from 'express'
 import * as rest from '../utils/rest'
 import Joi from 'joi'
-import jwt from "jsonwebtoken"
+import jwt, {JwtPayload} from "jsonwebtoken"
 import mysql, { RowDataPacket } from 'mysql2'
 import * as dotenv from 'dotenv'
 
@@ -14,6 +14,10 @@ const pool = mysql.createPool({
   database: process.env.MYSQL_DATABASE,
 }).promise()
 
+
+interface CustomeJWTPayload extends JwtPayload{
+  id?: number
+}
 export interface Storage extends RowDataPacket{
   id?: number
   image: string
@@ -39,6 +43,10 @@ const StorageSchema = Joi.object<Storage>({
     owner: Joi.string().optional(),
     type: Joi.string().required(),
     share: Joi.boolean().optional(),
+  })
+
+  const DelSchema = Joi.object<Storage>({
+    id: Joi.number().required(),
   })
 
 export async function createStorage(req:Request, res:Response){
@@ -127,20 +135,18 @@ export async function updateStorage(req:Request, res:Response){
 
 
 export async function deleteStorage(req:Request, res:Response){
-  
-  /*
+    
   const token = req.cookies.token
-  const {error, value} = DelSchema.validate(jwt.decode(token))
-  */
-  
-  const {error, value} = StorageSchema.validate(req.body)
-
+  const decoded = jwt.decode(token) as CustomeJWTPayload
+  const ownerid = decoded.id
+  const {error, value} = DelSchema.validate(req.body)
+  console.log(value)
   if (error !== undefined) {
       return res.status(400).json(rest.error('Request improperly formatted'))
   }
       const [row] = await pool.query(`
           DELETE FROM storages
-          WHERE id = ?
-          `, [value.id])
+          WHERE id = ? AND owner = ?
+          `, [value.id, ownerid])
       return res.status(200).json(rest.success("User Deleted"))
 }

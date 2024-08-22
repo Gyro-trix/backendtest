@@ -46,7 +46,7 @@ const createTablesIfNotExists = async () => {
     `;
     const createStoragesTableQuery =`
     CREATE TABLE IF NOT EXISTS storages( 
-        id INT AUTO_INCREMENT UNIQUE PRIMARY KEY,
+        id INT UNIQUE PRIMARY KEY,
         image VARCHAR(255),
         location VARCHAR(20) NOT NULL,
         name VARCHAR(20) NOT NULL,
