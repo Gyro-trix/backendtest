@@ -19,7 +19,6 @@ export interface Friend extends RowDataPacket{
   id?: number
   user_id: number
   friend_id: number
-  status: boolean
 };
 
 export interface User{
@@ -33,7 +32,6 @@ const FriendSchema = Joi.object<Storage>({
     id: Joi.number().optional(),
     user_id: Joi.number().required(),
     friend_id: Joi.number().optional(),
-    status: Joi.boolean().required(),
     
   })
 
@@ -47,11 +45,11 @@ export async function createFriend(req:Request, res:Response){
     try{
         const user_id = value.name;       
         const friend_id = value.quantity;
-        const status = value.size;
+        
        
 
-        const insertQuery = 'INSERT INTO friends (user_id,friend_id,status) VALUES (?,?,?)';
-        await pool.execute(insertQuery, [user_id,friend_id,status]);
+        const insertQuery = 'INSERT INTO friends (user_id,friend_id) VALUES (?,?)';
+        await pool.execute(insertQuery, [user_id,friend_id]);
         res.status(200).json(rest.success("Friend request sent"))
         return 
     } catch(error){
@@ -72,7 +70,6 @@ export async function getFriends(req:Request, res:Response){
   const [row] = await pool.query(`
     SELECT * FROM friends
     WHERE user_id = ?
-    AND status = true
     `, [value.user_id])
   
   //If there are empty results, the ID is not in the table
@@ -82,7 +79,7 @@ export async function getFriends(req:Request, res:Response){
   }
   return res.status(200).json(rest.success(row))
 }
-
+/*
 export async function updateFriend(req:Request, res:Response){
   const {error, value} = FriendSchema.validate(req.body)
   
@@ -93,7 +90,6 @@ export async function updateFriend(req:Request, res:Response){
   const id = value.id
   const user_id = value.user_id
   const friend_id = value.friend_id
-  const status = value.status
   
   //check if owner is current user
 
@@ -105,12 +101,12 @@ export async function updateFriend(req:Request, res:Response){
   }
       const [row] = await pool.query(`
           UPDATE friends
-          SET user_id = ?, friends_id = ?, status = ?
+          SET user_id = ?, friends_id = ?
           WHERE id = ?
-          `, [user_id,friend_id,status])
+          `, [user_id,friend_id])
       return res.status(200).json(rest.success(row))
 }
-
+*/
 
 export async function deleteFriends(req:Request, res:Response){
   

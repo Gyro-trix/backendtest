@@ -72,8 +72,15 @@ const createTablesIfNotExists = async () => {
         id INT AUTO_INCREMENT UNIQUE PRIMARY KEY,
         user_id INT NOT NULL,
         friend_id INT NOT NULL,
-        status BOOLEAN NOT NULL,
         FOREIGN KEY (user_id) REFERENCES userauth(id) 
+    );
+    `;
+    const createInvitesTableQuery =`
+    CREATE TABLE IF NOT EXISTS invites( 
+        id INT AUTO_INCREMENT UNIQUE PRIMARY KEY,
+        owner_id INT NOT NULL,
+        target_id INT NOT NULL,
+        FOREIGN KEY (owner_id) REFERENCES userauth(id) 
     );
     `;
     const createRecipesTableQuery =`
