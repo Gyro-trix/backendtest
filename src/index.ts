@@ -67,7 +67,26 @@ const createTablesIfNotExists = async () => {
         FOREIGN KEY (storageid) REFERENCES storages(id) 
     );
     `;
-
+    const createFriendsTableQuery =`
+    CREATE TABLE IF NOT EXISTS friends( 
+        id INT AUTO_INCREMENT UNIQUE PRIMARY KEY,
+        user_id INT NOT NULL,
+        friend_id INT NOT NULL,
+        status BOOLEAN NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES userauth(id) 
+    );
+    `;
+    const createRecipesTableQuery =`
+    CREATE TABLE IF NOT EXISTS recipes( 
+        id INT AUTO_INCREMENT UNIQUE PRIMARY KEY,
+        owner_id INT NOT NULL,
+        content TEXT,
+        title VARCHAR(128) NOT NULL,
+        subtitle VARCHAR(128) NOT NULL,
+        decription VARCHAR(128) NOT NULL,
+        FOREIGN KEY (owner_id) REFERENCES userauth(id) 
+    );
+    `;
   let connection;
   try {
     connection = await pool.getConnection();

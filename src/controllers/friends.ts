@@ -17,11 +17,9 @@ const pool = mysql.createPool({
 
 export interface Friend extends RowDataPacket{
   id?: number
-  name: string
-  quantity: number
-  size: string
-  storage: number
-  expiry: string
+  user_id: number
+  friend_id: number
+  status: boolean
 };
 
 export interface User{
@@ -33,11 +31,10 @@ export interface User{
 
 const FriendSchema = Joi.object<Storage>({
     id: Joi.number().optional(),
-    name: Joi.string().required(),
-    quantity: Joi.number().required(),
-    size: Joi.string().required(),
-    storageid: Joi.number().required(),
-    expiry: Joi.string().required(),
+    user_id: Joi.number().required(),
+    friend_id: Joi.number().optional(),
+    status: Joi.boolean().required(),
+    
   })
 
 export async function createFriend(req:Request, res:Response){
@@ -48,15 +45,14 @@ export async function createFriend(req:Request, res:Response){
     }
         
     try{
-        const name = value.name;       
-        const quantity = value.quantity;
-        const size = value.size;
-        const storageid = value.storageid;
-        const expiry = value.expiry;
+        const user_id = value.name;       
+        const friend_id = value.quantity;
+        const status = value.size;
+       
 
-        const insertQuery = 'INSERT INTO items (name,quantity,size,storageid,expiry) VALUES (?,?,?,?,?)';
-        await pool.execute(insertQuery, [name,quantity,size,storageid,expiry]);
-        res.status(200).json(rest.success("Item Added"))
+        const insertQuery = 'INSERT INTO friends (user_id,friend_id,status) VALUES (?,?,?)';
+        await pool.execute(insertQuery, [user_id,friend_id,status]);
+        res.status(200).json(rest.success("Friend request sent"))
         return 
     } catch(error){
         console.error("Error:",error);
@@ -64,24 +60,25 @@ export async function createFriend(req:Request, res:Response){
     }
 }
 
-//Get Items based on storage ID
+//Get friends based on user id
 export async function getFriends(req:Request, res:Response){
     const {error, value} = FriendSchema.validate(req.body)
 
   //Make sure id given is a number
-  if (Number.isNaN(value.storage)) {
+  if (Number.isNaN(value.user_id)) {
     return res.status(400).json(rest.error('ID is not a number'))
   }
 
   const [row] = await pool.query(`
-    SELECT * FROM items
-    WHERE storage = ?
-    `, [value.storage])
+    SELECT * FROM friends
+    WHERE user_id = ?
+    AND status = true
+    `, [value.user_id])
   
   //If there are empty results, the ID is not in the table
   const values = Object.values(row)
   if (values.length === 0){
-    return res.status(400).json(rest.error('No Entry for given ID'))
+    return res.status(400).json(rest.error('No Friends for given ID'))
   }
   return res.status(200).json(rest.success(row))
 }
@@ -89,31 +86,28 @@ export async function getFriends(req:Request, res:Response){
 export async function updateFriend(req:Request, res:Response){
   const {error, value} = FriendSchema.validate(req.body)
   
-  
-  const id = value.id
-  const name = value.name
-  const quantity = value.quantity
-  const size = value.size
-  const expiry = value.expiry
-  const storage = value.atorage
-  
   if (error !== undefined) {
       return res.status(400).json(rest.error('User data is not formatted correctly'))
   }
 
+  const id = value.id
+  const user_id = value.user_id
+  const friend_id = value.friend_id
+  const status = value.status
+  
   //check if owner is current user
 
-  const getQuery = 'SELECT * FROM items WHERE id = ?'
+  const getQuery = 'SELECT * FROM friends WHERE id = ?'
   const [getResult] = await pool.execute<Friend[]>(getQuery,[id])
 
   if(getResult.length === 0){
       return res.status(400).json(rest.error('No Such Storage Exists'))
   }
       const [row] = await pool.query(`
-          UPDATE storages
-          SET name = ?, quantity = ?, size = ?, expiry = ?, storage = ?
+          UPDATE friends
+          SET user_id = ?, friends_id = ?, status = ?
           WHERE id = ?
-          `, [name,quantity,size,expiry,storage,id])
+          `, [user_id,friend_id,status])
       return res.status(200).json(rest.success(row))
 }
 
@@ -126,8 +120,8 @@ export async function deleteFriends(req:Request, res:Response){
       return res.status(400).json(rest.error('Request improperly formatted'))
   }
       const [row] = await pool.query(`
-          DELETE FROM storages
+          DELETE FROM friends
           WHERE id = ?
           `, [value.id])
-      return res.status(200).json(rest.success("Item Deleted"))
+      return res.status(200).json(rest.success("Friend Deleted"))
 }
